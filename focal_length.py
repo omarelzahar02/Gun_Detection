@@ -1,7 +1,3 @@
-# USAGE
-# python main.py --video ex.mp4
-# python ball_tracking.py
-
 # import the necessary packages
 from collections import deque
 import numpy as np
@@ -12,6 +8,29 @@ import serial
 import time
 import cv2
 import cvzone
+from imutils import paths
+
+
+def find_marker(image):
+	# convert the image to grayscale, blur it, and detect edges
+	gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+	gray = cv2.GaussianBlur(gray, (5, 5), 0)
+	edged = cv2.Canny(gray, 35, 125)
+	# find the contours in the edged image and keep the largest one;
+	# we'll assume that this is our piece of paper in the image
+	cnts = cv2.findContours(edged.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+	cnts = imutils.grab_contours(cnts)
+	c = max(cnts, key = cv2.contourArea)
+	# compute the bounding box of the of the paper region and return it
+	return cv2.minAreaRect(c)
+
+def distance_to_camera(knownWidth, focalLength, perWidth):
+	# compute and return the distance from the maker to the camera
+	return (knownWidth * focalLength) / perWidth
+
+# USAGE
+# python main.py --video ex.mp4
+# python ball_tracking.py
 
 # construct the argument parse and parse the arguments
 a2 = 0
@@ -42,7 +61,7 @@ cv2.createTrackbar('v upper', 'image', 0, 255, lambda x: None)
 cv2.createTrackbar('h2 lower', 'image', 0, 255, lambda x: None)
 cv2.createTrackbar('h2 upper', 'image', 0, 255, lambda x: None)
 # otherwise, grab a reference to the video file
-
+dist = 100.0
 # keep looping
 while True:
     # grab the current frame
@@ -76,6 +95,25 @@ while True:
     imgContour,contours= cvzone.findContours(frame,mask,minArea=10)
     center = None
 
+    KNOWN_DISTANCE = 160
+    # initialize the known object width, which in this case, the piece of
+    # paper is 12 inches wide
+    KNOWN_WIDTH = 4.0
+    # load the furst image that contains an object that is KNOWN TO BE 2 feet
+    # from our camera, then find the paper marker in the image, and initialize
+    # the focal length
+    marker = find_marker(frame)
+    focalLength = (marker[1][0] * KNOWN_DISTANCE) / KNOWN_WIDTH
+    #print(focalLength)
+
+    focal = 4287.416571
+    min_hypotenuse = math.sqrt((100**2)+(150**2))
+    max_hypotenuse = math.sqrt((100**2)+(200**2))
+    dis2 = (KNOWN_WIDTH*focal) / marker[1][0]
+    if dis2 >= min_hypotenuse and dis2 <= max_hypotenuse:
+        dist = dis2
+    print(dist)
+
     # only proceed if at least one contour was found
     if contours:
         x= contours[0]['center'][0]
@@ -94,21 +132,25 @@ while True:
         radii = []
         radii.append(float(radius))
         avg_radius = np.average(radii)
-        print(avg_radius)
+        #print(avg_radius)
         c1 = bytearray()
         # try:
         a = x / frame.shape[1] * 1.75
-        a1 = math.ceil(math.degrees(math.atan(a))) + 70
+        proj = math.sqrt((dist**2)-(100**2))
+        #print(proj)
+        a1 = math.ceil(math.degrees(math.atan(a)))
         # except ZeroDivisionError:
         #   a1 = 90
         # if (x > 300):
         #   a1 = 180 - a1
-        c1.append(a1)
-        ser.write(str(a1).encode() + '\n'.encode())  # write the angle values on the X axis servo
-        ser.write('a'.encode() + '\n'.encode())
+        #c1.append(a1)
+        #ser.write(str(a1).encode() + '\n'.encode())  # write the angle values on the X axis servo
+        #ser.write('a'.encode() + '\n'.encode())
         #print(a1)
         b = y / frame.shape[0]
-        a2 = math.ceil(math.degrees(math.atan(b))) + 45
+
+        a2 = math.ceil(math.degrees(math.asin(100.0/dist)))
+        #print (a2)
         ser.write(str(a2).encode() + '\n'.encode())  # write the angle values on the Y axis servo
         ser.write('b'.encode() + '\n'.encode())  # write 'b' to distinguish the angle value for Y axis only
         # input_data=bluetooth.readline()#This reads the incoming data. In this particular example it will be the "Hello from Blue" line
@@ -143,3 +185,4 @@ while True:
 # cleanup the camera and close any open windows
 camera.release()
 cv2.destroyAllWindows()
+

@@ -37,10 +37,10 @@ greenUpper = (255, 255, 255)
 
 cv2.namedWindow('image')
 cv2.createTrackbar('h lower', 'image', 0, 255, lambda x: None)
-cv2.createTrackbar('h upper', 'image', 0, 255, lambda x: None)
-cv2.createTrackbar('s lower', 'image', 0, 255, lambda x: None)
+cv2.createTrackbar('h upper', 'image', 0, 255, lambda x:None)
+cv2.createTrackbar('s lower', 'image', 0, 255, lambda x:None)
 cv2.createTrackbar('s upper', 'image', 0, 255, lambda x: None)
-cv2.createTrackbar('v lower', 'image', 0, 255, lambda x: None)
+cv2.createTrackbar('v lower', 'image', 0, 255, lambda x:None)
 cv2.createTrackbar('v upper', 'image', 0, 255, lambda x: None)
 pts = deque(maxlen=args["buffer"])
 # if a video path was not supplied, grab the reference
@@ -57,8 +57,8 @@ while True:
     frame = cv2.flip(frameinv, 1)
     # if we are viewing a video and we did not grab a frame,
     # then we have reached the end of the video
-    greenLower = (146, 43, 54)
-    greenUpper = (196, 165, 128)
+    greenLower = (109, 49, 144)
+    greenUpper = (255, 255, 255)
 
     if args.get("video") and not grabbed:
 
@@ -88,6 +88,9 @@ while True:
         # centroid
         c = max(cnts, key=cv2.contourArea)
         ((x, y), radius) = cv2.minEnclosingCircle(c)
+        radii = []
+        radii.append(int(radius))
+        avg_radius = math.avg(radii)
         c1 = bytearray()
         # try:
         a = x/frame.shape[1] * 1.75
@@ -99,7 +102,7 @@ while True:
         c1.append(a1)
         ser.write(str(a1).encode() + '\n'.encode())  # write the angle values on the X axis servo
         ser.write('a'.encode() + '\n'.encode())
-        #print(a1)
+        print(a1)
         b = y/frame.shape[0]
         a2 = math.ceil(math.degrees(math.atan(b))) + 45
         ser.write(str(a2).encode() + '\n'.encode())  # write the angle values on the Y axis servo
