@@ -78,13 +78,16 @@ while True:
     # construct a mask for the color "green", then perform
     # a series of dilations and erosions to remove any small
     # 179,152,169
-    RedLower = (0,134,138)
-    RedUpper = (12,255,255)
+    # green 33 91    58
+    # blue 104 60 70
+    #laser 69,31,94
+    RedLower = (25, 70, 40)
+    RedUpper = (50, 255, 255)
     RedLower2 = (172,134,138)
     RedUpper2 = (240,255,255)
     mask1 = cv2.inRange(hsv, RedLower, RedUpper)
     mask2=cv2.inRange(hsv,RedLower2,RedUpper2)
-    mask=mask1+mask2
+    mask=mask1
     cv2.imshow("before erode", mask)
     mask = cv2.erode(mask, None, iterations=2)
     # cv2.imshow("after erode",mask)
@@ -106,12 +109,16 @@ while True:
     focalLength = (marker[1][0] * KNOWN_DISTANCE) / KNOWN_WIDTH
     #print(focalLength)
 
-    focal = 4287.416571
+    focal = 4189.416571
     min_hypotenuse = math.sqrt((100**2)+(150**2))
     max_hypotenuse = math.sqrt((100**2)+(200**2))
     dis2 = (KNOWN_WIDTH*focal) / marker[1][0]
-    #if dis2 >= min_hypotenuse and dis2 <= max_hypotenuse:
-    dist = dis2
+    if dis2 >= min_hypotenuse and dis2 <= max_hypotenuse:
+        dist = dis2
+    #if(dist > 200):
+    #    dist = 200
+    #elif (dist<150):
+    #    dist = 150
     print(dist)
 
     # only proceed if at least one contour was found
@@ -151,7 +158,11 @@ while True:
         b = y / frame.shape[0]
 
         a2 = math.ceil(math.degrees(math.asin(100.0/dist)))
-        #print (a2)
+        if (a2 > 0):
+            a2 = 90-a2
+        else:
+            a2 = 90 + abs(a2)
+       # print (a2)
         ser.write(str(a2).encode() + '\n'.encode())  # write the angle values on the Y axis servo
         ser.write('b'.encode() + '\n'.encode())  # write 'b' to distinguish the angle value for Y axis only
         # input_data=bluetooth.readline()#This reads the incoming data. In this particular example it will be the "Hello from Blue" line
