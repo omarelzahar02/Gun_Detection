@@ -18,7 +18,7 @@ ap = argparse.ArgumentParser()
 port="COM11" #This will be different for various devices and on windows it will probably be a COM port.
 ser = serial.Serial()
 ser.baudrate = 9600#the baud rate over which the arduino and python will communicate
-ser.port = 'COM3' # change it for your owm com port
+ser.port = 'COM10' # change it for your owm com port
 ser.open()
 ap.add_argument("-v", "--video",
                 help="path to the (optional) video file")
