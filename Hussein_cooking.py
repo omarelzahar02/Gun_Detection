@@ -16,13 +16,31 @@ def find_marker(image):
 	gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 	gray = cv2.GaussianBlur(gray, (5, 5), 0)
 	edged = cv2.Canny(gray, 35, 125)
-	# find the contours in the edged image and keep the largest one;
-	# we'll assume that this is our piece of paper in the image
 	cnts = cv2.findContours(edged.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 	cnts = imutils.grab_contours(cnts)
+
+	# find the contours in the edged image and keep the largest one;
+	# we'll assume that this is our piece of paper in the image
+
 	c = max(cnts, key = cv2.contourArea)
 	# compute the bounding box of the of the paper region and return it
 	return cv2.minAreaRect(c)
+
+
+def find_marker2(image2):
+    # convert the image to grayscale, blur it, and detect edges
+    gray2 = cv2.cvtColor(image2, cv2.COLOR_BGR2GRAY)
+    gray2 = cv2.GaussianBlur(gray2, (5, 5), 0)
+    edged2 = cv2.Canny(gray2, 35, 125)
+    cnts2 = cv2.findContours(edged2.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    cnts2 = imutils.grab_contours(cnts2)
+    # find the contours in the edged image and keep the largest one;
+    # we'll assume that this is our piece of paper in the image
+
+    c = max(cnts2, key=cv2.contourArea)
+    # compute the bounding box of the of the paper region and return it
+    return cv2.minAreaRect(c)
+
 
 def distance_to_camera(knownWidth, focalLength, perWidth):
 	# compute and return the distance from the maker to the camera
@@ -37,10 +55,10 @@ a2 = 0
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
 port="COM11" #This will be different for various devices and on windows it will probably be a COM port.
-ser = serial.serial()
-ser.baudrate = 9600#the baud rate over which the arduino and python will communicate
-ser.port = 'COM10' # change it for your owm com port
-ser.open()
+#ser = #serial.#serial()
+#ser.baudrate = 9600#the baud rate over which the arduino and python will communicate
+#ser.port = 'COM10' # change it for your owm com port
+#ser.open()
 
 # define the lower and upper boundaries of the "green"
 # ball in the HSV color space, then initialize the
@@ -64,9 +82,14 @@ cv2.createTrackbar('h2 upper', 'image', 0, 255, lambda x: None)
 dist = 100.0
 # keep looping
 while True:
+    calibrator = 1
+    Screen_centerx=320
+    Screen_centery=249
     # grab the current frame
     (grabbed, frame) = camera.read()
+    (grabbed, frame2) = camera.read()
     frame = cv2.flip(frame, 1)
+    frame2 = cv2.flip(frame2, 1)
     # if we are viewing a video and we did not grab a frame,
     # then we have reached the end of the video
     # resize the frame, blur it, and convert it to the HSV
@@ -74,19 +97,20 @@ while True:
     # frame = cv2.GaussianBlur(frame, (11, 11), 0)
 
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    hsv2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2HSV)
 
     # construct a mask for the color "green", then perform
-    # a series of dilations and erosions to remove any small
+    # a #series of dilations and erosions to remove any small
     # 179,152,169
     # green 33 91    58
     # blue 104 60 70
-    #laser 69,31,94
+    #la#ser 69,31,94
     RedLower = (25, 70, 40)
     RedUpper = (50, 255, 255)
-    RedLower2 = (172,134,138)
-    RedUpper2 = (240,255,255)
+    RedLower2 = (95,50,60)
+    RedUpper2 = (115,255,255)
     mask1 = cv2.inRange(hsv, RedLower, RedUpper)
-    mask2=cv2.inRange(hsv,RedLower2,RedUpper2)
+    mask2=cv2.inRange(hsv2,RedLower2,RedUpper2)
     mask=mask1
     cv2.imshow("before erode", mask)
     mask = cv2.erode(mask, None, iterations=2)
@@ -96,6 +120,7 @@ while True:
     # find contours in the mask and initialize the current
     # (x, y) center of the ball
     imgContour,contours= cvzone.findContours(frame,mask,minArea=10)
+    imgContour2, contours2 = cvzone.findContours(frame2, mask2, minArea=10)
     center = None
 
     KNOWN_DISTANCE = 160
@@ -106,7 +131,10 @@ while True:
     # from our camera, then find the paper marker in the image, and initialize
     # the focal length
     marker = find_marker(frame)
+
+    marker2 = find_marker2(frame2)
     focalLength = (marker[1][0] * KNOWN_DISTANCE) / KNOWN_WIDTH
+    #print(marker[1][0])
     #print(focalLength)
 
     focal = 4189.416571
@@ -119,7 +147,7 @@ while True:
     #    dist = 200
     #elif (dist<150):
     #    dist = 150
-    print(dist)
+    #print(dist)
 
     # only proceed if at least one contour was found
     if contours:
@@ -139,21 +167,42 @@ while True:
         radii = []
         radii.append(float(radius))
         avg_radius = np.average(radii)
+        #
+        image_width_on_screen = avg_radius
+        real_width = 20.1
+        ratio = real_width/image_width_on_screen
+        #print(contours2[0])
+        #=-3.36952*(x)+325.284
+        #the linearized equation
+        #hypotunus from radius
+
         #print(avg_radius)
         c1 = bytearray()
         # try:
-        a = x / frame.shape[1] * 1.75
+        #hetety ana deh
+        atunator=-3.36952 * (avg_radius) + 325.284
+        if atunator>200:
+            atunator = 200
+        elif atunator<150:
+            atunator = 150
+        hypot = 175/(1-calibrator/(x+y)) +atunator*calibrator/(x+y)
+        xreal = (x-Screen_centerx) * ratio
+        yreal = (y-Screen_centery)*ratio
+        a = x *ratio
         proj = math.sqrt((dist**2)-(100**2))
         #print(proj)
-        a1 = math.ceil(math.degrees(math.atan(a)))
-
+        a1 = math.ceil(math.degrees(math.sin(yreal/hypot)))#vertical angle
+        Projection = math.sqrt((hypot**2)-(yreal*2))
+        a2 = math.ceil(math.degrees(math.asin(xreal/Projection))) #horizontal angle
+        print(Projection)
+        #le7ad hena
         # except ZeroDivisionError:
         #   a1 = 90
         # if (x > 300):
         #   a1 = 180 - a1
         #c1.append(a1)
-        #ser.write(str(a1).encode() + '\n'.encode())  # write the angle values on the X axis servo
-        #ser.write('a'.encode() + '\n'.encode())
+        ##ser.write(str(a1).encode() + '\n'.encode())  # write the angle values on the X axis #servo
+        ##ser.write('a'.encode() + '\n'.encode())
         #print(a1)
         b = y / frame.shape[0]
 
@@ -163,8 +212,8 @@ while True:
         else:
             a2 = 90 + abs(a2)
        # print (a2)
-        ser.write(str(a2).encode() + '\n'.encode())  # write the angle values on the Y axis servo
-        ser.write('b'.encode() + '\n'.encode())  # write 'b' to distinguish the angle value for Y axis only
+        #ser.write(str(a2).encode() + '\n'.encode())  # write the angle values on the Y axis #servo
+        #ser.write('b'.encode() + '\n'.encode())  # write 'b' to distinguish the angle value for Y axis only
         # input_data=bluetooth.readline()#This reads the incoming data. In this particular example it will be the "Hello from Blue" line
         # print(input_data.decode())#These are bytes coming in so a decode is needed
         time.sleep(0.1)  # A pause between bursts
