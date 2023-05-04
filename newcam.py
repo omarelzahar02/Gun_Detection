@@ -20,7 +20,7 @@ ap = argparse.ArgumentParser()
 port="COM11" #This will be different for various devices and on windows it will probably be a COM port.
 ser = serial.Serial()
 ser.baudrate = 9600#the baud rate over which the arduino and python will communicate
-ser.port = 'COM10' # change it for your owm com port
+ser.port = 'COM5' # change it for your owm com port
 ser.open()
 
 # define the lower and upper boundaries of the "green"
@@ -59,13 +59,14 @@ while True:
     # construct a mask for the color "green", then perform
     # a series of dilations and erosions to remove any small
     # 179,152,169
-    RedLower = (0,134,138)
-    RedUpper = (12,255,255)
+    #27,75,253
+    RedLower = (15,65,240)
+    RedUpper = (40,255,255)
     RedLower2 = (172,134,138)
     RedUpper2 = (240,255,255)
     mask1 = cv2.inRange(hsv, RedLower, RedUpper)
     mask2=cv2.inRange(hsv,RedLower2,RedUpper2)
-    mask=mask1+mask2
+    mask=mask1
     cv2.imshow("before erode", mask)
     mask = cv2.erode(mask, None, iterations=2)
     # cv2.imshow("after erode",mask)
