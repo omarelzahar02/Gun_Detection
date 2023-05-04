@@ -55,10 +55,10 @@ a2 = 0
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
 port="COM11" #This will be different for various devices and on windows it will probably be a COM port.
-#ser = #serial.#serial()
-#ser.baudrate = 9600#the baud rate over which the arduino and python will communicate
-#ser.port = 'COM10' # change it for your owm com port
-#ser.open()
+ser = serial.Serial()
+ser.baudrate = 9600#the baud rate over which the arduino and python will communicate
+ser.port = 'COM5' # change it for your owm com port
+ser.open()
 
 # define the lower and upper boundaries of the "green"
 # ball in the HSV color space, then initialize the
@@ -82,9 +82,10 @@ cv2.createTrackbar('h2 upper', 'image', 0, 255, lambda x: None)
 dist = 100.0
 # keep looping
 while True:
-    calibrator = 1
+    calibrator = 0.9 #NOT = 1 less than 1
     Screen_centerx=320
-    Screen_centery=249
+    Screen_centery=240
+    #mesured 320 , 249
     # grab the current frame
     (grabbed, frame) = camera.read()
     (grabbed, frame2) = camera.read()
@@ -100,11 +101,11 @@ while True:
     hsv2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2HSV)
 
     # construct a mask for the color "green", then perform
-    # a #series of dilations and erosions to remove any small
+    # a series of dilations and erosions to remove any small
     # 179,152,169
     # green 33 91    58
     # blue 104 60 70
-    #la#ser 69,31,94
+    #laser 69,31,94
     RedLower = (25, 70, 40)
     RedUpper = (50, 255, 255)
     RedLower2 = (95,50,60)
@@ -117,7 +118,13 @@ while True:
     # cv2.imshow("after erode",mask)
     mask = cv2.dilate(mask, None, iterations=2)
     cv2.imshow("after dilate", mask)
-    # find contours in the mask and initialize the current
+
+    mask_blue = mask2
+    cv2.imshow("before erode blue", mask_blue)
+    mask_blue = cv2.erode(mask_blue, None, iterations=2)
+    # cv2.imshow("after erode",mask)
+    mask_blue = cv2.dilate(mask_blue, None , iterations = 2)
+    cv2.imshow("after dilate blue", mask_blue)
     # (x, y) center of the ball
     imgContour,contours= cvzone.findContours(frame,mask,minArea=10)
     imgContour2, contours2 = cvzone.findContours(frame2, mask2, minArea=10)
@@ -149,6 +156,19 @@ while True:
     #    dist = 150
     #print(dist)
 
+    if contours2:
+        x_blue = contours2[0]['center'][0]
+        y_blue = contours2[0]['center'][1]
+        cnts_blue = cv2.findContours(mask_blue.copy(), cv2.RETR_EXTERNAL,
+                                cv2.CHAIN_APPROX_SIMPLE)[-2]
+        #print(cnts_blue)
+        c_blue = max(cnts_blue, key=cv2.contourArea)
+        ((x_blue, y_blue), radius_blue) = cv2.minEnclosingCircle(c_blue)
+        radii_blue = []
+        radii_blue.append(float(radius_blue))
+        avg_radius_blue = np.average(radii_blue)
+        #print (f'radius of blue circle={avg_radius_blue}')
+
     # only proceed if at least one contour was found
     if contours:
         x= contours[0]['center'][0]
@@ -157,6 +177,7 @@ while True:
         area=area/3.14
         area=np.sqrt(area)
         cv2.circle(frame,(x,y),(int)(area),(0, 255, 255), 2)
+
         # only proceed if the radius meets a minimum size
 
         ############################################################################
@@ -169,51 +190,90 @@ while True:
         avg_radius = np.average(radii)
         #
         image_width_on_screen = avg_radius
-        real_width = 20.1
+        real_width = 13.6
         ratio = real_width/image_width_on_screen
+
+        real_width_blue = 5.5
+        ratio_blue = real_width_blue/avg_radius_blue
+        ratio_romberg = (4*ratio - ratio_blue) / 3
         #print(contours2[0])
-        #=-3.36952*(x)+325.284
+        #=-3.36952*(x)+325.284 ----A4
+        #-2.47130111175*(x)+341.987533551------A3
         #the linearized equation
         #hypotunus from radius
 
         #print(avg_radius)
+        #print(avg_radius_blue)
         c1 = bytearray()
         # try:
         #hetety ana deh
-        atunator=-3.36952 * (avg_radius) + 325.284
-        if atunator>200:
-            atunator = 200
-        elif atunator<150:
-            atunator = 150
-        hypot = 175/(1-calibrator/(x+y)) +atunator*calibrator/(x+y)
-        xreal = (x-Screen_centerx) * ratio
-        yreal = (y-Screen_centery)*ratio
-        a = x *ratio
+        height_of_target_irl=50
+        atunator=-2.67731209107*(avg_radius)+352.948646254
+        atunator_blue=-9.08432994228*(avg_radius_blue)+344.467290424
+        max_hypotenuse1 = math.sqrt(height_of_target_irl**2+200**2)
+        min_hypotenuse1 = math.sqrt(height_of_target_irl ** 2 + 150 ** 2)
+        if atunator>max_hypotenuse1:
+            atunator = max_hypotenuse1
+        elif atunator<min_hypotenuse1:
+            atunator = min_hypotenuse1
+        if(x+y)-height_of_target_irl/ratio_romberg==0:
+                x=x+0.0000001
+        elif(x+y-height_of_target_irl/ratio_romberg==1):
+                x=x+0.0000001
+        if atunator_blue>max_hypotenuse1:
+            atunator_blue = max_hypotenuse1
+        elif atunator_blue<min_hypotenuse1:
+            atunator_blue = min_hypotenuse1
+        #print(atunator)
+        #print(atunator_blue)
+        atunator_romberg = (4*atunator-atunator_blue)/3
+        #print(atunator_romberg)
+        #hypot = 175*(1-calibrator)*(1-1/(x+y))+atunator_romberg*(calibrator)/(x+y)
+        hypot = atunator_romberg
+        #print(hypot)
+        xreal = -(x-Screen_centerx)*ratio_romberg
+
+        yreal = -(y-Screen_centery)*ratio_romberg
+
         proj = math.sqrt((dist**2)-(100**2))
         #print(proj)
-        a1 = math.ceil(math.degrees(math.sin(yreal/hypot)))#vertical angle
-        Projection = math.sqrt((hypot**2)-(yreal*2))
-        a2 = math.ceil(math.degrees(math.asin(xreal/Projection))) #horizontal angle
-        print(Projection)
+        Projection = math.sqrt((hypot ** 2) - (yreal ** 2))
+        if((abs(yreal)<hypot )| (abs(xreal) < Projection)):
+            a1 = (math.degrees(math.sin(yreal/hypot)))#vertical angle
+            #print(a1)
+            a2 = (math.degrees(math.asin(xreal/Projection))) #horizontal angle
+            #print(a2)
+        else:
+            a1 = 60
+            a2 = 60
         #le7ad hena
         # except ZeroDivisionError:
-        #   a1 = 90
+        #   a1 = 90q
         # if (x > 300):
         #   a1 = 180 - a1
         #c1.append(a1)
-        ##ser.write(str(a1).encode() + '\n'.encode())  # write the angle values on the X axis #servo
-        ##ser.write('a'.encode() + '\n'.encode())
+        #ser.write(str(a1).encode() + '\n'.encode())  # write the angle values on the X axis servo
+        #ser.write('a'.encode() + '\n'.encode())
         #print(a1)
-        b = y / frame.shape[0]
+        #b = y / frame.shape[0]
 
-        a2 = math.ceil(math.degrees(math.asin(100.0/dist)))
-        if (a2 > 0):
-            a2 = 90-a2
+        #a2 = math.ceil(math.degrees(math.asin(100.0/dist)))
+        if (a1 > 0):
+            a1send = (60-math.ceil(a1))
         else:
-            a2 = 90 + abs(a2)
-       # print (a2)
-        #ser.write(str(a2).encode() + '\n'.encode())  # write the angle values on the Y axis #servo
-        #ser.write('b'.encode() + '\n'.encode())  # write 'b' to distinguish the angle value for Y axis only
+            a1send = 60 + abs(math.ceil(a1))
+
+        if (a2 > 0):
+            a2send = 60-math.ceil(a2)
+        else:
+            a2send = 60 + abs(math.ceil(a2))
+        #print(a2send)
+        #print(a1send)
+        ser.write(str(a2send).encode() + '\n'.encode())  # write the angle values on the Y axis servo
+        ser.write('a'.encode() + '\n'.encode())  # write 'b' to distinguish the angle value for Y axis only
+
+        ser.write(str(a1send).encode() + '\n'.encode())  # write the angle values on the Y axis servo
+        ser.write('b'.encode() + '\n'.encode())  # write 'b' to distinguish the angle value for Y axis only
         # input_data=bluetooth.readline()#This reads the incoming data. In this particular example it will be the "Hello from Blue" line
         # print(input_data.decode())#These are bytes coming in so a decode is needed
         time.sleep(0.1)  # A pause between bursts
@@ -237,6 +297,7 @@ while True:
 
     # show the frame to our screen
     cv2.imshow("Frame", frame)
+    cv2.imshow("Frame2",frame2)
     key = cv2.waitKey(1) & 0xFF
 
     # if the 'q' key is pressed, stop the loop
