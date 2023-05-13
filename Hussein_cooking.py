@@ -234,14 +234,21 @@ while True:
         xreal = -(x-Screen_centerx)*ratio_romberg
 
         yreal = -(y-Screen_centery)*ratio_romberg
-
+        #########################################################
+        ###                 Note To self                      ###
+        ###use height_of_target_irl intead of y-screen_centery###
+        #########################################################
         proj = math.sqrt((dist**2)-(100**2))
         #print(proj)
         Projection = math.sqrt((hypot ** 2) - (yreal ** 2))
         if((abs(yreal)<hypot )| (abs(xreal) < Projection)):
+            #BIG PROBLEM HERE SWAP SIN WITH ACOS or atleast asin
             a1 = (math.degrees(math.sin(yreal/hypot)))#vertical angle
+            #y=hyp(cos(90-a1)) -----> 90-a1=acos(y/hyp)
             #print(a1)
             a2 = (math.degrees(math.asin(xreal/Projection))) #horizontal angle
+            #x=hyp sin(90-a1)*cos(a2)
+            #Or using projection #projection also = hyp sin(90-a1)
             #print(a2)
         else:
             a1 = 60
@@ -266,7 +273,7 @@ while True:
         if (a2 > 0):
             a2send = 60-math.ceil(a2)
         else:
-            a2send = 60 + abs(math.ceil(a2))
+            a2send = 60+abs(math.ceil(a2))
         #print(a2send)
         #print(a1send)
         ser.write(str(a2send).encode() + '\n'.encode())  # write the angle values on the Y axis servo
