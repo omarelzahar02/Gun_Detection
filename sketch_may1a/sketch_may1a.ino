@@ -9,8 +9,8 @@ void setup() {
  ser3.attach(A2);//the third servo is attached to A2 which is the trigger servo
  ser3.write(0);
  Serial.begin(9600);
- 
-   ser2.write(90);
+ ser1.write(60);
+ ser2.write(60);
 }
 String a,c; 
 int b,d;
