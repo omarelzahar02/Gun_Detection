@@ -245,7 +245,7 @@ while True:
         proj = math.sqrt((dist**2)-(100**2))
         #print(proj)
         Projection =(math.sin((math.acos(yreal/hypot))))*(hypot)+0.0000001
-        if((abs(yreal)<hypot ) &(abs(xreal) < Projection)):
+        if((abs(yreal)<hypot ) and (abs(xreal) < Projection)):
             #BIG PROBLEM HERE SWAP SIN WITH ACOS or atleast asin
             a1 = 90-(math.degrees(math.acos(yreal/hypot)))#vertical angle
             #y=hyp(cos(90-a1)) -----> 90-a1=acos(y/hyp)
