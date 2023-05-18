@@ -17,7 +17,7 @@ import serial
 camera = cv2.VideoCapture(0)
 ser = serial.Serial()
 ser.baudrate = 250000#the baud rate over which the arduino and python will communicate
-ser.port = 'COM10' # change it for your owm com port
+ser.port = 'COM5' # change it for your owm com port
 ser.open()
 pre_servo_lower=0
 pre_servo_upper=0

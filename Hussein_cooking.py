@@ -104,10 +104,13 @@ while True:
     # a series of dilations and erosions to remove any small
     # 179,152,169
     # green 33 91    58
+    #green bad 37,37,67
+    # green bad 2 51,34,43
     # blue 104 60 70
+    #blue bad 208,56,54
     #laser 69,31,94
-    RedLower = (25, 70, 40)
-    RedUpper = (50, 255, 255)
+    RedLower = (40, 38, 132)
+    RedUpper = (80, 99, 255)
     RedLower2 = (95,50,60)
     RedUpper2 = (115,255,255)
     mask1 = cv2.inRange(hsv, RedLower, RedUpper)
@@ -162,7 +165,8 @@ while True:
         cnts_blue = cv2.findContours(mask_blue.copy(), cv2.RETR_EXTERNAL,
                                 cv2.CHAIN_APPROX_SIMPLE)[-2]
         #print(cnts_blue)
-        c_blue = max(cnts_blue, key=cv2.contourArea)
+        if(len(cnts_blue)!=0):
+            c_blue = max(cnts_blue, key=cv2.contourArea)
         ((x_blue, y_blue), radius_blue) = cv2.minEnclosingCircle(c_blue)
         radii_blue = []
         radii_blue.append(float(radius_blue))
@@ -207,7 +211,7 @@ while True:
         c1 = bytearray()
         # try:
         #hetety ana deh
-        height_of_target_irl=50
+        height_of_target_irl=60
         atunator=-2.67731209107*(avg_radius)+352.948646254
         atunator_blue=-9.08432994228*(avg_radius_blue)+344.467290424
         max_hypotenuse1 = math.sqrt(height_of_target_irl**2+200**2)
@@ -233,21 +237,21 @@ while True:
         #print(hypot)
         xreal = -(x-Screen_centerx)*ratio_romberg
 
-        yreal = -(y-Screen_centery)*ratio_romberg
+        yreal = height_of_target_irl#-(y-Screen_centery)*ratio_romberg
         #########################################################
         ###                 Note To self                      ###
         ###use height_of_target_irl intead of y-screen_centery###
         #########################################################
         proj = math.sqrt((dist**2)-(100**2))
         #print(proj)
-        Projection = math.sqrt((hypot ** 2) - (yreal ** 2))
-        if((abs(yreal)<hypot )| (abs(xreal) < Projection)):
+        Projection =(math.sin((math.acos(yreal/hypot))))*(hypot)+0.0000001
+        if((abs(yreal)<hypot ) &(abs(xreal) < Projection)):
             #BIG PROBLEM HERE SWAP SIN WITH ACOS or atleast asin
-            a1 = (math.degrees(math.sin(yreal/hypot)))#vertical angle
+            a1 = 90-(math.degrees(math.acos(yreal/hypot)))#vertical angle
             #y=hyp(cos(90-a1)) -----> 90-a1=acos(y/hyp)
             #print(a1)
-            a2 = (math.degrees(math.asin(xreal/Projection))) #horizontal angle
-            #x=hyp sin(90-a1)*cos(a2)
+            a2 =90- (math.degrees(math.acos(xreal/Projection))) #horizontal angle
+            #x=hyp sin(90-a1)*cos(a2) -------->acos(x/projction)
             #Or using projection #projection also = hyp sin(90-a1)
             #print(a2)
         else:
@@ -274,7 +278,10 @@ while True:
             a2send = 60-math.ceil(a2)
         else:
             a2send = 60+abs(math.ceil(a2))
-        #print(a2send)
+        print(a2send)
+        print(xreal)
+        print(Projection)
+        print(hypot)
         #print(a1send)
         ser.write(str(a2send).encode() + '\n'.encode())  # write the angle values on the Y axis servo
         ser.write('a'.encode() + '\n'.encode())  # write 'b' to distinguish the angle value for Y axis only
