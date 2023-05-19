@@ -81,6 +81,8 @@ cv2.createTrackbar('h2 upper', 'image', 0, 255, lambda x: None)
 # otherwise, grab a reference to the video file
 dist = 100.0
 # keep looping
+radii = []
+radii_blue = []
 while True:
     calibrator = 0.9 #NOT = 1 less than 1
     Screen_centerx=320
@@ -88,9 +90,8 @@ while True:
     #mesured 320 , 249
     # grab the current frame
     (grabbed, frame) = camera.read()
-    (grabbed, frame2) = camera.read()
     frame = cv2.flip(frame, 1)
-    frame2 = cv2.flip(frame2, 1)
+    frame2 = frame
     # if we are viewing a video and we did not grab a frame,
     # then we have reached the end of the video
     # resize the frame, blur it, and convert it to the HSV
@@ -109,10 +110,10 @@ while True:
     # blue 104 60 70
     #blue bad 208,56,54
     #laser 69,31,94
-    RedLower = (40, 38, 132)
-    RedUpper = (80, 99, 255)
-    RedLower2 = (95,50,60)
-    RedUpper2 = (115,255,255)
+    RedLower = (20, 40, 30)
+    RedUpper = (90, 255, 255)
+    RedLower2 = (90,150,140)
+    RedUpper2 = (130,255,255)
     mask1 = cv2.inRange(hsv, RedLower, RedUpper)
     mask2=cv2.inRange(hsv2,RedLower2,RedUpper2)
     mask=mask1
@@ -130,7 +131,7 @@ while True:
     cv2.imshow("after dilate blue", mask_blue)
     # (x, y) center of the ball
     imgContour,contours= cvzone.findContours(frame,mask,minArea=10)
-    imgContour2, contours2 = cvzone.findContours(frame2, mask2, minArea=10)
+    imgContour2, contours2 = cvzone.findContours(frame2, mask_blue, minArea=10)
     center = None
 
     KNOWN_DISTANCE = 160
@@ -167,8 +168,7 @@ while True:
         #print(cnts_blue)
         if(len(cnts_blue)!=0):
             c_blue = max(cnts_blue, key=cv2.contourArea)
-        ((x_blue, y_blue), radius_blue) = cv2.minEnclosingCircle(c_blue)
-        radii_blue = []
+            ((x_blue, y_blue), radius_blue) = cv2.minEnclosingCircle(c_blue)
         radii_blue.append(float(radius_blue))
         avg_radius_blue = np.average(radii_blue)
         #print (f'radius of blue circle={avg_radius_blue}')
@@ -189,7 +189,6 @@ while True:
                                 cv2.CHAIN_APPROX_SIMPLE)[-2]
         c = max(cnts, key=cv2.contourArea)
         ((x, y), radius) = cv2.minEnclosingCircle(c)
-        radii = []
         radii.append(float(radius))
         avg_radius = np.average(radii)
         #
@@ -198,7 +197,10 @@ while True:
         ratio = real_width/image_width_on_screen
 
         real_width_blue = 5.5
-        ratio_blue = real_width_blue/avg_radius_blue
+        try:
+            ratio_blue = real_width_blue/avg_radius_blue
+        except:
+            ratio_blue = 1
         ratio_romberg = (4*ratio - ratio_blue) / 3
         #print(contours2[0])
         #=-3.36952*(x)+325.284 ----A4
@@ -211,7 +213,7 @@ while True:
         c1 = bytearray()
         # try:
         #hetety ana deh
-        height_of_target_irl=60
+        height_of_target_irl=35
         atunator=-2.67731209107*(avg_radius)+352.948646254
         atunator_blue=-9.08432994228*(avg_radius_blue)+344.467290424
         max_hypotenuse1 = math.sqrt(height_of_target_irl**2+200**2)
@@ -236,7 +238,8 @@ while True:
         hypot = atunator_romberg
         #print(hypot)
         xreal = -(x-Screen_centerx)*ratio_romberg
-
+        print(xreal)
+        print(x)
         yreal = height_of_target_irl#-(y-Screen_centery)*ratio_romberg
         #########################################################
         ###                 Note To self                      ###
@@ -269,7 +272,7 @@ while True:
         #b = y / frame.shape[0]
 
         #a2 = math.ceil(math.degrees(math.asin(100.0/dist)))
-        if (a1 > 0):
+        if (a1 < 0):
             a1send = (60-math.ceil(a1))
         else:
             a1send = 60 + abs(math.ceil(a1))
@@ -278,10 +281,10 @@ while True:
             a2send = 60-math.ceil(a2)
         else:
             a2send = 60+abs(math.ceil(a2))
-        print(a2send)
-        print(xreal)
-        print(Projection)
-        print(hypot)
+        #print(a2send)
+
+        #print(Projection)
+        #print(hypot)
         #print(a1send)
         ser.write(str(a2send).encode() + '\n'.encode())  # write the angle values on the Y axis servo
         ser.write('a'.encode() + '\n'.encode())  # write 'b' to distinguish the angle value for Y axis only

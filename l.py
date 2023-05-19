@@ -18,7 +18,7 @@ ap = argparse.ArgumentParser()
 port="COM11" #This will be different for various devices and on windows it will probably be a COM port.
 ser = serial.Serial()
 ser.baudrate = 9600#the baud rate over which the arduino and python will communicate
-ser.port = 'COM10' # change it for your owm com port
+ser.port = 'COM5' # change it for your owm com port
 ser.open()
 ap.add_argument("-v", "--video",
                 help="path to the (optional) video file")
@@ -32,16 +32,16 @@ args = vars(ap.parse_args())
 #greenUpper = (64, 255, 255)
 #greenLower = (26, 139, 132)
 #greenUpper = (191, 215, 255)
-greenLower = (109, 49, 144)
-greenUpper = (255, 255, 255)
+# greenLower = (109, 49, 144)
+# greenUpper = (255, 255, 255)
 
 cv2.namedWindow('image')
 cv2.createTrackbar('h lower', 'image', 0, 255, lambda x: None)
-cv2.createTrackbar('h upper', 'image', 0, 255, lambda x:None)
 cv2.createTrackbar('s lower', 'image', 0, 255, lambda x:None)
-cv2.createTrackbar('s upper', 'image', 0, 255, lambda x: None)
 cv2.createTrackbar('v lower', 'image', 0, 255, lambda x:None)
 cv2.createTrackbar('v upper', 'image', 0, 255, lambda x: None)
+cv2.createTrackbar('s upper', 'image', 0, 255, lambda x: None)
+cv2.createTrackbar('h upper', 'image', 0, 255, lambda x:None)
 pts = deque(maxlen=args["buffer"])
 # if a video path was not supplied, grab the reference
 # to the webcam
@@ -90,7 +90,7 @@ while True:
         ((x, y), radius) = cv2.minEnclosingCircle(c)
         radii = []
         radii.append(int(radius))
-        avg_radius = math.avg(radii)
+        # avg_radius = math.avg(radii)
         c1 = bytearray()
         # try:
         a = x/frame.shape[1] * 1.75
